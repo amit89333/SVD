@@ -1,0 +1,30 @@
+{
+  "vehicle_id": "vehicle-1",
+  "model": "SDV-CyberX-2026",
+  "ecus": [
+    {
+      "name": "Engine control unit",
+      "firmware": "v2.1.4",
+      "cpe": "cpe:2.3:o:sdv:engine_firmware:2.1.4:*:*:*:*:*:*:*",
+      "components": ["libcan-stack-1.0.2", "linux-kernel-5.4.0"]
+    },
+    {
+      "name": "Brake system ecu",
+      "firmware": "v1.0.8",
+      "cpe": "cpe:2.3:o:sdv:brake_firmware:1.0.8:*:*:*:*:*:*:*",
+      "components": ["abs-driver-0.9.1", "openssl-1.1.1t"]
+    },
+    {
+      "name": "Infotainment domain controller",
+      "firmware": "v3.0.0",
+      "cpe": "cpe:2.3:o:sdv:infotainment:3.0.0:*:*:*:*:*:*:*",
+      "components": ["qt-automotive-5.15", "sqlite-3.32.0", "busybox-1.31.1"]
+    },
+    {
+      "name": "Central gateway ecu",
+      "firmware": "v1.2.0",
+      "cpe": "cpe:2.3:o:sdv:gateway_firmware:1.2.0:*:*:*:*:*:*:*",
+      "components": ["socketcan-utils-2020.02", "mbedtls-2.16.0"]
+    }
+  ]
+}

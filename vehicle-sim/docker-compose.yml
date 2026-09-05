@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  ecu_engine:
+    build:
+      context: ..
+      dockerfile: vehicle-sim/Dockerfile
+    container_name: vehicle1_ecu_engine
+    command: ["python", "vehicle-sim/ecu_engine.py"]
+    restart: always
+
+  ecu_brakes:
+    build:
+      context: ..
+      dockerfile: vehicle-sim/Dockerfile
+    container_name: vehicle1_ecu_brakes
+    command: ["python", "vehicle-sim/ecu_brakes.py"]
+    restart: always
+
+  ecu_infotainment:
+    build:
+      context: ..
+      dockerfile: vehicle-sim/Dockerfile
+    container_name: vehicle1_ecu_infotainment
+    command: ["python", "vehicle-sim/ecu_infotainment.py"]
+    restart: always
+
+  ecu_gateway:
+    build:
+      context: ..
+      dockerfile: vehicle-sim/Dockerfile
+    container_name: vehicle1_ecu_gateway
+    command: ["python", "vehicle-sim/ecu_gateway.py"]
+    restart: always
