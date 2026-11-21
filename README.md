@@ -18,25 +18,6 @@ A simulated **Software-Defined Vehicle (SDV) Cybersecurity Management Platform**
 
 ---
 
-## 🛠️ Quick Start
-
-### 1. Install Dependencies
-```bash
-pip install -r requirements.txt
-```
-
-### 2. Launch Backend & Dashboard
-```bash
-python -m uvicorn backend-api.main:app --host 127.0.0.1 --port 8000
-```
-Open **`http://localhost:8000`** in your browser.
-
-### 3. Run Attack Injector CLI
-```bash
-python attack-injector/inject.py --attack spoofing --duration 5
-```
-
----
 
 ## 📜 Standards & Compliance
 - **ISO/SAE 21434:2021**: Road vehicles cybersecurity engineering standard
