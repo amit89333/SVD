@@ -38,6 +38,11 @@
             </div>
         </div>
         <div class="flex items-center space-x-4">
+            <button id="sound-toggle" onclick="toggleAlertSound()" aria-pressed="false"
+                class="bg-gray-800 hover:bg-gray-700 border border-gray-700 px-4 py-2 rounded-lg text-xs font-medium transition flex items-center gap-2">
+                <i id="sound-toggle-icon" class="fa-solid fa-volume-xmark"></i>
+                <span id="sound-toggle-label">Sound: OFF</span>
+            </button>
             <div id="fleet-status-badge" class="px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 FLEET STATUS: GREEN (NORMAL OPERATION)
@@ -92,7 +97,7 @@
 
         <!-- Left Column: Attack Control & Live Chart (7 Cols) -->
         <div class="lg:col-span-7 space-y-6">
-            
+
             <!-- Component 2: Attack Injector -->
             <div class="bg-cardbg border border-bordercolor rounded-xl p-5">
                 <div class="flex items-center justify-between mb-4">
@@ -338,7 +343,7 @@
         function injectAttack(type) {
             activeAttackMode = type;
             appendAuditRecord("ATTACK_INJECTED", { attack_type: type, target_vehicle: "vehicle-1" });
-            
+
             if (attackTimer) clearTimeout(attackTimer);
             attackTimer = setTimeout(() => {
                 activeAttackMode = null;
@@ -390,7 +395,93 @@
             }
         }
 
+
+        // ----------------------------------------------------
+        // Alert Sound (Web Audio API)
+        // Sound starts only after the user enables it.
+        // ----------------------------------------------------
+        let alertSoundEnabled = false;
+        let alertAudioContext = null;
+        let lastAlertSoundTime = 0;
+
+        async function toggleAlertSound() {
+            const button = document.getElementById('sound-toggle');
+            const label = document.getElementById('sound-toggle-label');
+            const icon = document.getElementById('sound-toggle-icon');
+
+            if (!alertSoundEnabled) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContextClass) {
+                    alert("Your browser does not support alert sound.");
+                    return;
+                }
+
+                try {
+                    if (!alertAudioContext) {
+                        alertAudioContext = new AudioContextClass();
+                    }
+                    if (alertAudioContext.state === 'suspended') {
+                        await alertAudioContext.resume();
+                    }
+
+                    alertSoundEnabled = true;
+                    button.setAttribute('aria-pressed', 'true');
+                    button.classList.remove('bg-gray-800', 'hover:bg-gray-700', 'border-gray-700');
+                    button.classList.add('bg-emerald-900/40', 'hover:bg-emerald-900/60', 'border-emerald-700');
+                    label.textContent = 'Sound: ON';
+                    icon.className = 'fa-solid fa-volume-high';
+                } catch (error) {
+                    console.error('Could not enable alert sound:', error);
+                    alert("Could not enable sound. Please check your browser audio settings.");
+                }
+            } else {
+                alertSoundEnabled = false;
+                button.setAttribute('aria-pressed', 'false');
+                button.classList.remove('bg-emerald-900/40', 'hover:bg-emerald-900/60', 'border-emerald-700');
+                button.classList.add('bg-gray-800', 'hover:bg-gray-700', 'border-gray-700');
+                label.textContent = 'Sound: OFF';
+                icon.className = 'fa-solid fa-volume-xmark';
+            }
+        }
+
+        function playAlertSound() {
+            if (!alertSoundEnabled || !alertAudioContext) return;
+
+            // Prevent a continuous attack from producing an irritating sound every 500ms.
+            const now = Date.now();
+            if (now - lastAlertSoundTime < 1800) return;
+            lastAlertSoundTime = now;
+
+            if (alertAudioContext.state === 'suspended') {
+                alertAudioContext.resume().catch(error => {
+                    console.warn('Alert audio could not resume:', error);
+                });
+            }
+
+            const playTone = (frequency, startOffset, duration) => {
+                const oscillator = alertAudioContext.createOscillator();
+                const gain = alertAudioContext.createGain();
+
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(frequency, alertAudioContext.currentTime + startOffset);
+
+                gain.gain.setValueAtTime(0.0001, alertAudioContext.currentTime + startOffset);
+                gain.gain.exponentialRampToValueAtTime(0.18, alertAudioContext.currentTime + startOffset + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.0001, alertAudioContext.currentTime + startOffset + duration);
+
+                oscillator.connect(gain);
+                gain.connect(alertAudioContext.destination);
+                oscillator.start(alertAudioContext.currentTime + startOffset);
+                oscillator.stop(alertAudioContext.currentTime + startOffset + duration + 0.03);
+            };
+
+            // Two short high-pitched tones for a security alert.
+            playTone(880, 0, 0.16);
+            playTone(660, 0.20, 0.20);
+        }
+
         function raiseAlert(alert) {
+            playAlertSound();
             totalAlertsCount++;
             document.getElementById('stat-alert-count').innerText = totalAlertsCount;
             document.getElementById('alert-badge-count').innerText = `${totalAlertsCount} Alerts`;
@@ -452,20 +543,20 @@
             container.innerHTML = `
                 <div class="p-2.5 rounded ${isolatedZones.has('0x1A0') ? 'bg-red-950/40 border-red-700/60' : 'bg-gray-900/50 border-gray-800'} border flex justify-between items-center">
                     <span class="font-mono text-gray-300">Zone ID: 0x1A0 (ECU_BRAKES)</span>
-                    ${isolatedZones.has('0x1A0') ? 
-                        `<button onclick="restoreZone('0x1A0')" class="bg-red-900/60 hover:bg-red-800 text-red-200 px-2 py-1 rounded text-[11px]">ISOLATED (Click Restore)</button>` : 
+                    ${isolatedZones.has('0x1A0') ?
+                        `<button onclick="restoreZone('0x1A0')" class="bg-red-900/60 hover:bg-red-800 text-red-200 px-2 py-1 rounded text-[11px]">ISOLATED (Click Restore)</button>` :
                         `<span class="text-emerald-400 font-bold">NORMAL</span>`}
                 </div>
                 <div class="p-2.5 rounded ${isolatedZones.has('0x000') ? 'bg-red-950/40 border-red-700/60' : 'bg-gray-900/50 border-gray-800'} border flex justify-between items-center">
                     <span class="font-mono text-gray-300">Zone ID: 0x000 (CAN_GATEWAY)</span>
-                    ${isolatedZones.has('0x000') ? 
-                        `<button onclick="restoreZone('0x000')" class="bg-red-900/60 hover:bg-red-800 text-red-200 px-2 py-1 rounded text-[11px]">ISOLATED (Click Restore)</button>` : 
+                    ${isolatedZones.has('0x000') ?
+                        `<button onclick="restoreZone('0x000')" class="bg-red-900/60 hover:bg-red-800 text-red-200 px-2 py-1 rounded text-[11px]">ISOLATED (Click Restore)</button>` :
                         `<span class="text-emerald-400 font-bold">NORMAL</span>`}
                 </div>
                 <div class="p-2.5 rounded ${isolatedZones.has('0x2B0') ? 'bg-red-950/40 border-red-700/60' : 'bg-gray-900/50 border-gray-800'} border flex justify-between items-center">
                     <span class="font-mono text-gray-300">Zone ID: 0x2B0 (INFOTAINMENT)</span>
-                    ${isolatedZones.has('0x2B0') ? 
-                        `<button onclick="restoreZone('0x2B0')" class="bg-red-900/60 hover:bg-red-800 text-red-200 px-2 py-1 rounded text-[11px]">ISOLATED (Click Restore)</button>` : 
+                    ${isolatedZones.has('0x2B0') ?
+                        `<button onclick="restoreZone('0x2B0')" class="bg-red-900/60 hover:bg-red-800 text-red-200 px-2 py-1 rounded text-[11px]">ISOLATED (Click Restore)</button>` :
                         `<span class="text-emerald-400 font-bold">NORMAL</span>`}
                 </div>
             `;
@@ -492,7 +583,7 @@
                 // 1. Normal Heartbeat Fluctuations
                 let rpmNoise = (Math.random() - 0.5) * 60;
                 let brakeNoise = Math.max(0, (Math.random() - 0.5) * 10);
-                
+
                 telemetryState.rpm = Math.min(7500, Math.max(800, telemetryState.rpm + rpmNoise));
                 telemetryState.brakePressure = brakeNoise;
 
